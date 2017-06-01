@@ -13,3 +13,8 @@ Task::Task(double _arrivalTime, double _cpuWork, double _outputWork) {
 double Task::GetArrivalTime() {
     return this->arrivalTime;
 }
+
+double Task::GetCPUWork() {
+    return this->cpuWork;
+}
+

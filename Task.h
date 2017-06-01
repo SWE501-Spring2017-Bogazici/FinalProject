@@ -14,6 +14,7 @@ private:
 public:
     Task(double arrivalTime, double cpuWork, double outputWork);
     double GetArrivalTime();
+    double GetCPUWork();
 };
 
 
