@@ -21,13 +21,20 @@ vector<string> SplitString(string main, char sep);
 template<class T>
 vector<T> CreateEntityVector(vector<string> lines);
 
-void Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outputDevices);
+template<class T>
+int GetIdOfEntityHighestWork(vector<T> entities);
+
+string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outputDevices);
 
 Task *GetTaskByArrivalTime(double i, vector<Task> tasks);
 
 CPU *FindAvailableCPU(vector<CPU> &cpus);
 
 Task *FindTaskWithShortestWork(vector<Task> &queue);
+
+OutputDevice *FindAvailableOutputDevice(vector<OutputDevice> &devices);
+
+void CreateOutput(string path, string result);
 
 const int MAX_TIME = 10000;
 
@@ -58,12 +65,24 @@ int main(int argc, char **argv) {
     vector<Task> tasks = CreateTasks(lines);
     printf("Read %lu tasks.\n", tasks.size());
 
-    Simulate(cpus, tasks, outputDevices);
+    string result = Simulate(cpus, tasks, outputDevices);
+
+    CreateOutput(outputFile, result);
     return 0;
 }
 
-void Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outputDevices) {
+string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outputDevices) {
     vector<Task> queue;
+    vector<Task> outputQueue;
+
+    // Output variables
+    string maxLengthQueue;
+    string maxLengthOutputQueue;
+    string idOfCPUGreatest;
+    string idOfOutputGreatest;
+    string averageWaitTime;
+    string longestWaitTime;
+    string averageTime;
 
     // Time
     double i = 0;
@@ -103,17 +122,66 @@ void Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outputD
 
             if (cpu.GetProgress() <= 0) {
                 // Task is done
+                Task *t = cpu.GetTaskInUse();
                 cpu.SetIdle(true);
                 cpu.SetTaskInUse(nullptr);
-
                 printf("Task is done, sending to output device.");
 
                 // Send to output device
+                outputQueue.push_back(*t);
+            }
+        }
+
+        unsigned long outputSize = outputQueue.size();
+
+        for (int k = 0; k < outputSize; ++k) {
+            OutputDevice *od = FindAvailableOutputDevice(outputDevices);
+
+            if (od != NULL) {
+                od->SetIdle(false);
+                od->SetTaskInUse(&(outputQueue[k]));
+            }
+        }
+
+        unsigned long outputDeviceSize = outputDevices.size();
+
+        for (int l = 0; l < outputDeviceSize; ++l) {
+
+            OutputDevice device = outputDevices[l];
+
+            if (!device.GetIdle()) {
+                device.DecrementProgress();
+
+                if (device.GetProgress() <= device.GetQuantum()) {
+                    device.SetIdle(true);
+                    device.SetTaskInUse(nullptr);
+
+                    printf("Task is done.");
+                }
             }
         }
 
         i++;
     }
+
+    maxLengthQueue = queue.size();
+    maxLengthOutputQueue = outputQueue.size();
+    idOfCPUGreatest = GetIdOfEntityHighestWork(cpus);
+    idOfOutputGreatest = GetIdOfEntityHighestWork(outputDevices);
+
+    return maxLengthQueue + "\n" +
+           maxLengthOutputQueue + "\n" +
+           idOfCPUGreatest + "\n" +
+           idOfOutputGreatest + "\n" +
+           averageWaitTime + "\n" +
+           longestWaitTime + "\n" +
+           averageTime;
+}
+
+void CreateOutput(string path, string result) {
+    ofstream out(path);
+    out << result;
+    out.close();
 }
 
 Task *FindTaskWithShortestWork(vector<Task> &queue) {
@@ -138,6 +206,30 @@ Task *FindTaskWithShortestWork(vector<Task> &queue) {
     return task;
 }
 
+template<class T>
+int GetIdOfEntityHighestWork(vector<T> entities) {
+    unsigned long queueSize = entities.size();
+
+    double work = -1;
+    T *t = nullptr;
+    for (int i = 0; i < queueSize; ++i) {
+        double qWork = entities[i].GetActiveTime();
+
+        if (work < 0) {
+            work = qWork;
+            t = &entities[i];
+        } else {
+            if (qWork > work) {
+                work = qWork;
+                t = &entities[i];
+            }
+        }
+    }
+
+    return t->GetID();
+}
+
+
 // Find an idle CPU
 CPU *FindAvailableCPU(vector<CPU> &cpus) {
 
@@ -146,6 +238,20 @@ CPU *FindAvailableCPU(vector<CPU> &cpus) {
     for (int j = 0; j < cpuSize; ++j) {
         if (cpus[j].GetIdle()) {
             return &cpus[j];
+        }
+    }
+
+    return NULL;
+}
+
+// Find an idle output device
+OutputDevice *FindAvailableOutputDevice(vector<OutputDevice> &devices) {
+
+    unsigned long deviceSize = devices.size();
+
+    for (int j = 0; j < deviceSize; ++j) {
+        if (devices[j].GetIdle()) {
+            return &devices[j];
         }
     }
 
@@ -232,7 +338,7 @@ vector<T> CreateEntityVector(vector<string> lines) {
     int amount = stoi(lines[0]);
 
     for (int i = 0; i < amount; ++i) {
-        T entity = T(stod(lines[i + 1]));
+        T entity = T(stod(lines[i + 1]), i);
         entities.push_back(entity);
     }
 

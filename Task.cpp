@@ -18,3 +18,7 @@ double Task::GetCPUWork() {
     return this->cpuWork;
 }
 
+double Task::GetOutputWork() {
+    return this->outputWork;
+}
+

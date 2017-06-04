@@ -14,14 +14,18 @@ private:
     bool idle;
     Task* taskInUse;
     double progress;
+    double id;
+    double activeTime;
 public:
-    CPU(double frequency);
+    CPU(double frequency, int id);
     bool GetIdle();
     void SetIdle(bool idle);
     Task* GetTaskInUse();
     void SetTaskInUse(Task *task);
     void DecrementProgress();
     double GetProgress();
+    double GetActiveTime();
+    double GetID();
 };
 
 

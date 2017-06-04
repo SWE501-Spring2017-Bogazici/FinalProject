@@ -11,10 +11,12 @@ private:
     double arrivalTime;
     double cpuWork;
     double outputWork;
+    Task* taskInUse;
 public:
     Task(double arrivalTime, double cpuWork, double outputWork);
     double GetArrivalTime();
     double GetCPUWork();
+    double GetOutputWork();
 };
 
 
