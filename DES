@@ -1,0 +1,314 @@
+//============================================================================
+// Name        : des.cpp
+// Author      : Busra Ondul
+// Version     :
+// Description : Descrete Event Simulation
+//============================================================================
+
+#include <cstddef>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <string>
+#include <queue>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <limits>
+using namespace std;
+
+struct Job {
+	double arrivalTime;
+	double cpuQueueTime; //when it leaves cpu queue
+	double cpuQueueArrivalTime;
+	double outputQueueArrivalTime;
+	double cpuQueueExitTime;
+	double outputQueueExitTime;
+	double remainingTime;
+	double outputWork;
+	double cpuWork;
+	int assignedCpu;
+	int assignedOutput;
+	bool isWaiting;
+	bool isCompleted;
+
+	Job(double arrivalTime, double cpuWork, double outputWork) {
+		this->remainingTime = cpuWork;
+		this->cpuWork = cpuWork;
+		this->isWaiting = true;
+		this->arrivalTime = arrivalTime;
+		this->isCompleted = false;
+		this->outputWork = outputWork;
+		this->assignedCpu = -1;
+		this->assignedOutput = -1;
+	}
+};
+
+class Queue {
+public:
+	int previousJobIndex = 0;
+	virtual Job getNextJob() = 0;
+
+	virtual ~Queue() {
+	}
+
+	vector<Job> queue;
+};
+
+class RoundRobin: public Queue {
+public:
+	int currentJobIndex = 0;
+	Job getNextJob() {
+		Job nextJob = this->queue[currentJobIndex];
+		currentJobIndex = (currentJobIndex + 1) % this->queue.size();
+		return nextJob;
+	}
+
+	void addJob(Job job, double currentTime) {
+		job.outputQueueArrivalTime = currentTime;
+		this->queue.push_back(job);
+	}
+};
+
+class ShortestJobFirst: public Queue {
+public:
+	Job getNextJob() {
+		//get job from the queue shortest job first CPU
+		int currentMin = std::numeric_limits<int>::max();
+		int selectedJobIndex = 0;
+		for (unsigned int i = 0; i < this->queue.size(); i++) {
+			Job job = queue[i];
+			if (job.remainingTime < currentMin) {
+				currentMin = job.remainingTime;
+				this->previousJobIndex = selectedJobIndex;
+				selectedJobIndex = i;
+			}
+		}
+		return this->queue[selectedJobIndex];
+	}
+
+	void addJob(Job job, double currentTime) {
+		job.cpuQueueArrivalTime = currentTime;
+		this->queue.push_back(job);
+	}
+
+};
+class CPU {
+public:
+	double frequency;
+	bool isBusy;
+	CPU(double frequency) {
+		this->frequency = frequency;
+		this->isBusy = false;
+	}
+
+	int processJob(Job &job, double time) {
+
+		job.remainingTime = job.remainingTime - time * this->frequency;
+		if (job.remainingTime == 0) {
+			job.isCompleted = true;
+		}
+	}
+
+	double estimateJobFinishTime(Job job) {
+		double timePassed = job.cpuWork / this->frequency;
+		return timePassed;
+	}
+};
+
+class Output {
+public:
+	double quantum;
+	bool isBusy;
+	Output(double quantum) {
+		this->quantum = quantum;
+		this->isBusy = false;
+	}
+
+	int processJob(Job &job) {
+		int timePassed = this->quantum;
+		job.remainingTime = job.remainingTime - this->quantum;
+		return timePassed;
+	}
+};
+
+class DES {
+
+public:
+	double globalTime;
+	int numCPU;
+	int numOutput;
+	int numTasks;
+	vector<CPU> cpuList;
+	vector<Output> outputList;
+	vector<Job> jobList;
+	DES() {
+		this->globalTime = 0;
+	}
+
+	double getEarliestArrivalTime() {
+		int earliestArrival = std::numeric_limits<int>::max();
+		for (int i = 0; i < jobList.size(); i++) {
+			double jobArrivalTime = jobList[i].arrivalTime;
+			if (jobArrivalTime < earliestArrival) {
+				earliestArrival = jobArrivalTime;
+			}
+		}
+		return earliestArrival;
+	}
+
+	void assignJobsToCPU(ShortestJobFirst cpuQueue) {
+
+		for (int i = 0; i < cpuList.size(); i++) {
+			if (cpuList[i].isBusy == false) {
+				Job nextJob = cpuQueue.getNextJob();
+				if(nextJob.assignedCpu == -1){
+					nextJob.assignedCpu = i; //assign jobs to CPU
+					cpuList[i].isBusy = true;
+					cpuQueue.queue[cpuQueue.previousJobIndex] = nextJob;
+				}
+			}
+		}
+	}
+
+	void assignJobsToOutput(RoundRobin outputQueue) {
+			for (int i = 0; i < outputList.size(); i++) {
+				if (outputList[i].isBusy == false) {
+					Job nextJob = outputQueue.getNextJob();
+					if(nextJob.assignedOutput == -1){
+						nextJob.assignedOutput = i; //assign jobs to CPU
+						outputList[i].isBusy = true;
+						outputQueue.queue[outputQueue.previousJobIndex] = nextJob;
+					}
+				}
+			}
+		}
+
+	double processJobs(ShortestJobFirst cpuQueue) {
+		double minTimeStep = std::numeric_limits<int>::max();
+		for (int i = 0; i < cpuQueue.queue.size(); i++) {
+			if (cpuQueue.queue[i].assignedCpu != -1) {
+				double estimatedTime =
+						cpuList[cpuQueue.queue[i].assignedCpu].estimateJobFinishTime(
+								cpuQueue.queue[i]);
+				if (estimatedTime < minTimeStep) {
+					minTimeStep = estimatedTime;
+				}
+			}
+		}
+
+		for (int i = 0; i < cpuQueue.queue.size(); i++) {
+			if (cpuQueue.queue[i].assignedCpu != -1) {
+				cpuList[cpuQueue.queue[i].assignedCpu].processJob(cpuQueue.queue[i], minTimeStep);
+			}
+		}
+	}
+
+	double processJobsOutput(RoundRobin outputQueue) {
+			double minTimeStep = std::numeric_limits<int>::max();
+			for (int i = 0; i < outputQueue.queue.size(); i++) {
+				if (outputQueue.queue[i].assignedCpu != -1) {
+					double estimatedTime =
+							cpuList[outputQueue.queue[i].assignedCpu].estimateJobFinishTime(
+									outputQueue.queue[i]);
+					if (estimatedTime < minTimeStep) {
+						minTimeStep = estimatedTime;
+					}
+				}
+			}
+
+			for (int i = 0; i < outputQueue.queue.size(); i++) {
+				if (outputQueue.queue[i].assignedCpu != -1) {
+					cpuList[outputQueue.queue[i].assignedCpu].processJob(outputQueue.queue[i], minTimeStep);
+				}
+			}
+		}
+	void runSimulation() {
+		ShortestJobFirst cpuQueue;
+		RoundRobin outputQueue;
+		//get earliest arrival time and set global time to the earliest arrival
+
+		this->globalTime = getEarliestArrivalTime();
+
+		for (int i = 0; i < jobList.size(); i++) {
+			if (jobList[i].arrivalTime == this->globalTime) {
+				cpuQueue.addJob(jobList[i], this->globalTime);
+			}
+		}
+
+		assignJobsToCPU(cpuQueue);
+		processJobs(cpuQueue);
+
+		for (int i = 0; i < jobList.size(); i++) {
+			if (jobList[i].isCompleted == true) {
+				outputQueue.addJob(jobList[i], this->globalTime);
+			}
+		}
+
+		assignJobsToOutput(outputQueue);
+
+	}
+};
+
+int main(int argc, char *argv[]) {
+
+	ifstream file("input.txt");
+	string content;
+	int num_cpu = 0;
+	int num_output = 0;
+	DES des;
+
+	while (file >> content) {
+		cout << content << ' ' << endl;
+		num_cpu = atoi(content.c_str());
+		des.numCPU = num_cpu;
+		vector<CPU> cpuList;
+		for (int i = 0; i < num_cpu; i++) { //read CPU
+			double cpu_freq_double;
+			string cpu_freq;
+			file >> cpu_freq;
+			cpu_freq_double = atof(cpu_freq.c_str());
+			CPU cpu(cpu_freq_double);
+			cpuList.push_back(cpu);
+		}
+		des.cpuList = cpuList;
+
+		file >> content;
+		num_output = atoi(content.c_str());
+		des.numOutput = num_output;
+		vector<Output> outputList;
+		for (int i = 0; i < num_output; i++) {
+			double output_quantum_double;
+			string output_quantum;
+			file >> output_quantum;
+			output_quantum_double = atof(output_quantum.c_str());
+			Output out(output_quantum_double);
+			outputList.push_back(out);
+		}
+		des.outputList = outputList;
+
+		vector<Job> jobList;
+		string num_jobs_string;
+		file >> num_jobs_string;
+		int num_jobs = atoi(num_jobs_string.c_str());
+		for (int i = 0; i < num_jobs; i++) {
+			string arrivalTimeString;
+			file >> arrivalTimeString;
+			double arrivalTime = atof(arrivalTimeString.c_str());
+
+			string cpuWorkString;
+			file >> cpuWorkString;
+			double cpuWork = atof(cpuWorkString.c_str());
+
+			string outputWorkString;
+			file >> outputWorkString;
+			double outputWork = atof(outputWorkString.c_str());
+			Job job(arrivalTime, cpuWork, outputWork);
+			jobList.push_back(job);
+		}
+		des.jobList = jobList;
+	}
+
+	des.runSimulation();
+	return 0;
+}
