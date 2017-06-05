@@ -1,0 +1,16 @@
+﻿  stdafx.cpp
+  TaskShedulerCPU.cpp
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(112): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(114): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(236): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(240): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(264): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(284): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(288): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(307): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(318): warning C4018: '<': signed/unsigned mismatch
+c:\users\tool\documents\visual studio 2017\projects\taskshedulercpu\taskshedulercpu\taskshedulercpu.cpp(376): warning C4018: '<': signed/unsigned mismatch
+  Task.cpp
+  Generating Code...
+  TaskShedulerCPU.vcxproj -> C:\Users\tool\documents\visual studio 2017\Projects\TaskShedulerCPU\Debug\TaskShedulerCPU.exe
+  TaskShedulerCPU.vcxproj -> C:\Users\tool\documents\visual studio 2017\Projects\TaskShedulerCPU\Debug\TaskShedulerCPU.pdb (Partial PDB)
