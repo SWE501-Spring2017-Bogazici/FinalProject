@@ -7,6 +7,7 @@
 
 #include "Simulation.h"
 #include "TaskCpuArrivalEvent.h"
+#include "easylogging++.h"
 #include <iostream>
 
 using namespace std;
@@ -58,7 +59,6 @@ void Simulation::run() {
         Event* event= futureEventsList.top();
         futureEventsList.pop();
         event->process();
-
 		current_sjf_size=sjfQueue.size();
 		if (current_sjf_size>sjf_queue_max_size) {
 			sjf_queue_max_size=current_sjf_size;
@@ -98,10 +98,11 @@ void Simulation::run() {
 		grand_total_wait = grand_total_wait+total_wait;
 		if (total_wait>longest_wait_time) {
 			longest_wait_time = total_wait;
-			average_wait_time = grand_total_wait/tasks.size();
-			average_time_spent = total_time_spent/tasks.size();
 		}
 	}
+
+    average_wait_time = grand_total_wait/tasks.size();
+    average_time_spent = total_time_spent/tasks.size();
 }
 
 Cpu* Simulation::getFirstIdleCpu() {

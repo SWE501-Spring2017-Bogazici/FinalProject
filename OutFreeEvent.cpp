@@ -23,7 +23,7 @@ void OutFreeEvent::process() {
     if (!sim->rrQueue.empty()) {
         Task* newTask= sim->rrQueue.top();
         sim->rrQueue.pop();
-        newTask->waitOut=task->waitOut+(time-task->outtime);
+        newTask->waitOut=newTask->waitOut+(time-newTask->outtime);
         TaskOutArrivalEvent* event= new TaskOutArrivalEvent(sim, newTask, time);
         sim->schedule(event);
     }
