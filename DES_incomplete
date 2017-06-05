@@ -1,0 +1,196 @@
+// Firat Atalay - SWE 501 - Final
+// Acknowledgement: Full credit on Emirhan Karagul @
+// https://github.com/emir350z/DES/blob/master/project2.cpp
+//
+
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <queue>
+#include <vector>
+#include <iterator>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+class CPU {
+public:
+    double cpu_frequency;
+    int cpu_id;
+    double activeTime;
+    bool isAvaiable;
+
+    CPU(int id, double freq);
+    ~CPU();
+
+};
+
+CPU::CPU(int id, double freq ) {
+    cpu_id=id;
+    cpu_frequency = freq;
+    activeTime = 0;
+    isAvaiable=true;
+}
+
+CPU::~CPU() {
+
+}
+
+class Task {
+public:
+    double arrivalTime;
+    double departureTime;
+    double cpu_Work;
+    double io_Work;
+    double timespentCPU;
+    double timespentIO;
+    double lap;
+    int task_id;
+    int state;
+    int CPUid;
+    int IOid;
+    bool hold;
+
+    Task();
+    Task(double arrival, double cpu_Work, double io_Work,int id);
+
+    ~Task();
+
+};
+
+Task::Task(double arrival, double cpu_Work, double io_Work,int id) {
+
+    arrivalTime = arrival;
+    cpu_Work = cpu_Work;
+    io_Work = io_Work;
+    task_id=id;
+    state =-1;
+    timespentIO =0;
+    IOid =-1;
+    hold=false;
+
+}
+
+Task::~Task() {
+
+}
+
+Task::Task() {
+
+}
+
+class IODevice {
+public:
+    int io_id;
+    double io_quant;
+    double activeTime;
+    bool isAvailable;
+    bool isBeginstalled;
+    IODevice(int id, double timequant);
+    ~IODevice();
+
+};
+
+IODevice::IODevice(int id, double quant) {
+    io_id= id;
+    io_quant = quant;
+    activeTime = 0;
+    isAvailable =true;
+    isBeginstalled=false;
+}
+
+IODevice::~IODevice() {
+
+}
+
+bool operator<(const Task& lhs, const Task& rhs) {
+    if (lhs.lap == rhs.lap) {
+        if (lhs.state==rhs.state) {
+            if (lhs.io_Work == rhs.io_Work) {
+                return lhs.CPUid > rhs.CPUid;
+            }
+            return lhs.io_Work > rhs.io_Work;
+        }
+        return lhs.state < rhs.state;
+    }
+    return lhs.lap > rhs.lap;
+}
+
+bool operator<(const Task& lhs, const Task& rhs){
+    if (lhs.cpu_Work == rhs.cpu_Work) {
+        return lhs.io_Work > rhs.io_Work;
+    }
+    return lhs.cpu_Work > rhs.io_Work;
+}
+
+bool isCPUAvailable(vector<CPU> &v){
+    for (int i = 0; i <v.size() ; ++i) {
+        if(v[i].isAvaiable){
+            return true;
+        }
+    }
+    return false;
+}
+
+void sendToCPU(vector<CPU> &cpu, Task &task, double time,priority_queue<Task, vector<Task>, less<CPU>> & queue){
+    for (int i = 0; i <cpu.size() ; ++i) {
+        double proc_time;
+        if(cpu[i].isAvaiable){
+            proc_time = task.cpu_Work/cpu[i].cpu_frequency;
+            task.lap = proc_time+time;
+            task.CPUid = i;
+            task.timespentCPU = proc_time;
+            task.state=1;
+            cpu[i].isAvaiable = false;
+            cpu[i].activeTime += proc_time;
+            
+            queue.push(task);
+            break;
+        }
+    }
+}
+
+int main(int argc, const char * argv[]) {
+    ifstream inputFile(argv[1]);
+    
+    int numOfCPUs;
+    inputFile >> numOfCPUs;
+    
+    vector<CPU> procs;
+    double freq;
+    for (int i = 0; i < numOfCPUs; i++) {
+        inputFile >> freq;
+        procs.push_back(CPU(i+1,freq));
+    }
+    
+    int numOfIOs;
+    inputFile >> numOfIOs;
+    
+    vector<IODevice> ioDevices;
+    double quant;
+    for (int i = 0; i < numOfIOs; i++) {
+        inputFile >> quant;
+        ioDevices.push_back(IODevice(i, quant));
+    }
+    
+    int numOfTasks;
+    inputFile >> numOfTasks;
+    
+    vector<Task> tasks;
+    double arrival, cpu_Work, io_work;
+    for (int i = 0; i < numOfTasks; i++) {
+        inputFile >> arrival;
+        inputFile >> cpu_Work;
+        inputFile >> io_work;
+        Task t = Task(arrival,cpu_Work,io_work,i);
+        t.lap = t.arrivalTime;
+        tasks.push_back(t);
+        
+    }
+    
+    priority_queue<Task, vector<Task>, less<Task>> ordered;
+    priority_queue<Task, vector<Task>, less<CPU>> pq1;
+    
+    return 0;
+}
