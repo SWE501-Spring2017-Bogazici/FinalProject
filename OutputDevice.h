@@ -7,26 +7,14 @@
 
 
 #include "Task.h"
+#include "SimulationEntity.h"
 
-class OutputDevice {
+class OutputDevice: public SimulationEntity {
 private:
     double quantum;
-    bool idle;
-    Task* taskInUse;
-    double progress;
-    double id;
-    double activeTime;
 public:
     OutputDevice(double quantum, int id);
-    void SetIdle(bool idle);
-    bool GetIdle();
-    Task* GetTaskInUse();
-    void SetTaskInUse(Task *task);
-    void DecrementProgress();
-    double GetProgress();
     double GetQuantum();
-    double GetActiveTime();
-    double GetID();
 };
 
 

@@ -4,7 +4,6 @@
 #include <algorithm>
 #include "CPU.h"
 #include "OutputDevice.h"
-#include "Task.h"
 
 using namespace std;
 
@@ -35,6 +34,10 @@ Task *FindTaskWithShortestWork(vector<Task> &queue);
 OutputDevice *FindAvailableOutputDevice(vector<OutputDevice> &devices);
 
 void CreateOutput(string path, string result);
+
+void RemoveTaskFromVector(double id, vector<Task> &vec);
+
+double CalculateAverageWaitTime(vector<int> waitTimes);
 
 const int MAX_TIME = 10000;
 
@@ -75,6 +78,8 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
     vector<Task> queue;
     vector<Task> outputQueue;
 
+    vector<int> waitTimes;
+
     // Output variables
     string maxLengthQueue;
     string maxLengthOutputQueue;
@@ -83,6 +88,9 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
     string averageWaitTime;
     string longestWaitTime;
     string averageTime;
+
+    int queueMax = 0;
+    int pQueueMax = 0;
 
     // Time
     double i = 0;
@@ -94,6 +102,8 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
 
         if (task != NULL) {
             queue.push_back(*task);
+            queueMax++;
+
             printf("Task added to priority queue.");
         }
 
@@ -106,7 +116,14 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
             cpuToUse->SetTaskInUse(shortestTask);
             cpuToUse->SetIdle(false);
 
+            // Remove task from queue
+            RemoveTaskFromVector(shortestTask->GetID(), queue);
+
             printf("Task sent to CPU.");
+        } else {
+            for (int j = 0; j < queue.size(); ++j) {
+                queue[j].SetWaitTime(queue[j].GetWaitTime() + 1);
+            }
         }
 
         // Decrement progress for all CPUs
@@ -129,6 +146,7 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
 
                 // Send to output device
                 outputQueue.push_back(*t);
+                pQueueMax++;
             }
         }
 
@@ -140,6 +158,16 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
             if (od != NULL) {
                 od->SetIdle(false);
                 od->SetTaskInUse(&(outputQueue[k]));
+
+                waitTimes.push_back(outputQueue[k].GetWaitTime());
+
+                // Remove task from queue
+                RemoveTaskFromVector(outputQueue[k].GetID(), outputQueue);
+            } else {
+                for (int j = 0; j < outputQueue.size(); ++j) {
+                    outputQueue[j].SetWaitTime(outputQueue[j].GetWaitTime() + 1);
+                }
+
             }
         }
 
@@ -164,10 +192,13 @@ string Simulate(vector<CPU> cpus, vector<Task> tasks, vector<OutputDevice> outpu
         i++;
     }
 
-    maxLengthQueue = queue.size();
-    maxLengthOutputQueue = outputQueue.size();
+    maxLengthQueue = queueMax;
+    maxLengthOutputQueue = pQueueMax;
     idOfCPUGreatest = GetIdOfEntityHighestWork(cpus);
     idOfOutputGreatest = GetIdOfEntityHighestWork(outputDevices);
+    averageWaitTime = CalculateAverageWaitTime(waitTimes);
+    longestWaitTime = *max_element(waitTimes.begin(), waitTimes.end());
+
 
     return maxLengthQueue + "\n" +
            maxLengthOutputQueue + "\n" +
@@ -183,6 +214,17 @@ void CreateOutput(string path, string result) {
     out << result;
     out.close();
 }
+
+double CalculateAverageWaitTime(vector<int> waitTimes) {
+    int temp = 0;
+
+    for (int i = 0; i < waitTimes.size(); ++i) {
+        temp += waitTimes[i];
+    }
+
+    return temp / (double) waitTimes.size();
+}
+
 
 Task *FindTaskWithShortestWork(vector<Task> &queue) {
     unsigned long queueSize = queue.size();
@@ -307,7 +349,7 @@ vector<Task> CreateTasks(vector<string> lines) {
     for (int i = 0; i < amount; ++i) {
         // Split line into 3 doubles
         vector<string> elems = SplitString(lines[i + 1], ' ');
-        Task entity = Task(stod(elems[0]), stod(elems[1]), stod(elems[2]));
+        Task entity = Task(stod(elems[0]), stod(elems[1]), stod(elems[2]), i);
         entities.push_back(entity);
     }
 
@@ -343,4 +385,17 @@ vector<T> CreateEntityVector(vector<string> lines) {
     }
 
     return entities;
+}
+
+// Remove task from a vector by its id
+void RemoveTaskFromVector(double id, vector<Task> &vec) {
+
+    double size = vec.size();
+
+    for (int i = 0; i < size; ++i) {
+        if (vec[i].GetID() == id) {
+            vec.erase(vec.begin() + i);
+            return;
+        }
+    }
 }

@@ -11,12 +11,23 @@ private:
     double arrivalTime;
     double cpuWork;
     double outputWork;
-    Task* taskInUse;
+    double id;
+    int waitTime;
+    int startTime;
+    int endTime;
 public:
-    Task(double arrivalTime, double cpuWork, double outputWork);
+    Task(double arrivalTime, double cpuWork, double outputWork, double id);
     double GetArrivalTime();
     double GetCPUWork();
     double GetOutputWork();
+    double GetID();
+    void SetWaitTime(int waitTime);
+    int GetWaitTime();
+    void SetStartTime(int startTime);
+    int GetStartTime();
+    void SetEndTime(int endTime);
+    int GetEndTime();
+
 };
 
 
