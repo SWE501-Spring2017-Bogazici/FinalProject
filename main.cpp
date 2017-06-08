@@ -32,11 +32,15 @@ ostream& operator<<(ostream& out, Tag& _t){
 }
 
 struct myTimeComp{
-	bool operator() (Tag &lhs, Tag &rhs){ return (lhs.time > rhs.time); }
+	bool operator() (Tag &lhs, Tag &rhs){
+		if(lhs.time != rhs.time) return (lhs.time > rhs.time);
+		else return (lhs.index > rhs.index); }
 };
 
 struct myCPUComp{
-	bool operator() (Tag &lhs, Tag &rhs){ return (lhs.dProc > rhs.dProc); }
+	bool operator() (Tag &lhs, Tag &rhs){
+		if(lhs.dProc != rhs.dProc) return (lhs.dProc > rhs.dProc); 
+		else return (lhs.index > rhs.index); }
 };
 
 typedef priority_queue<Tag, vector<Tag>, myTimeComp> pqTComp;
@@ -54,7 +58,7 @@ public:
 	double TaskTime(){ if(_iscomplete) return TIME[3]-TIME[0]; }
 	
 	void Complete(double tn){
-		if(tn<0){ return; }
+		if(tn<TIME[2]){ cout << "Trouble@Task.Complete()" << endl; return; }
 		TIME[3] = tn;
 		STATS[0] = TIME[1]-TIME[0];
 		STATS[1] = C_time;
@@ -95,7 +99,10 @@ public:
 	void Start(double t0){ t_working = t0; _active = true; }
 	double Stop(double tn){ if(tn>t_working) activeTime += (tn - t_working); _active = false; return activeTime; }
 	bool isActive(){ return _active; }
-	
+
+//accepts a tag, "works" on Task pointed by it,
+//increases its time and returns tag
+
 	Tag Work(Tag &_tag){
 		_tag.time = (_tag.locator)->CPUFetched(_tag.time, freq);
 		return _tag;
@@ -111,10 +118,12 @@ public:
 	void Start(double t0){ t_working = t0; _active = true; }
 	double Stop(double tn){ if(tn>t_working) activeTime += (tn - t_working); _active = false; return activeTime; }
 	bool isActive(){ return _active; }
-	
+
+//accepts a tag, "works" on Task pointed by it,
+//increases its time and (if complete) its location and returns tag
+//doesn't check currentLocation, assumed to be 5
 	Tag Work(Tag &_tag){
 		_tag.time = (_tag.locator)->OutFetched(_tag.time, quanta);
-		if((_tag.locator)->isComplete()) _tag.currentLocation = 6;
 		return _tag;
 	}
 	
@@ -139,20 +148,21 @@ public:
 	}
 	
 	void TaskComplete(Tag &_tag){
+		_tag.currentLocation = 6;
 		int i = _tag.vIndex;
 		WaitTime[i] = vTask[i].WaitTime();
 		TaskTime[i] = vTask[i].TaskTime();
 	}
 	
-	double avWaitTime(){
-		double sum = 0;
-		for(int i=0; i<size; i++){ sum += WaitTime[i]; }
-		return (sum/size);
-	}
 	double maxWaitTime(){
 		double max = 0;
 		for(int i=0; i<size; i++){ if(WaitTime[i] > max) max = WaitTime[i]; }
 		return max;
+	}
+	double avWaitTime(){
+		double sum = 0;
+		for(int i=0; i<size; i++){ sum += WaitTime[i]; }
+		return (sum/size);
 	}
 	double avTaskTime(){
 		double sum = 0;
@@ -162,21 +172,21 @@ public:
 
 	pqTComp GenerateQueue(){
 		pqTComp que;
-		cout << "Initial setting:\n"; //TESTLINE
 		for(int i=0; i<size; i++){
 			Tag temp = vTask[i].initTag();
 			temp.vIndex = i;
 			que.push(temp);
-			cout << temp; //TESTLINE
 		}
 		return que;
 	}
 };
 
+/*two classes that are basically queues that receive and extract tags
+//currentLocation is updated when receiving and NOT when extracting*/
 class pCPUQueue{
 	pqCComp preCpu; int maxL = 0;
 public:
-	Tag top(){ return preCpu.top(); preCpu.pop(); }
+	Tag top(){ Tag rslt = preCpu.top(); preCpu.pop(); return rslt; }
 	bool empty(){ return preCpu.empty(); }
 	int maxLength(){ return maxL; }
 	
@@ -186,11 +196,10 @@ public:
 		if(preCpu.size()>maxL) maxL = preCpu.size();
 	}
 };
-
 class pOutQueue{
 	pqTComp preOut; int maxL = 0;
 public:
-	Tag top(){ return preOut.top(); preOut.pop(); }
+	Tag top(){ Tag rslt = preOut.top(); preOut.pop(); return rslt; }
 	bool empty(){ return preOut.empty(); }
 	int maxLength(){ return maxL; }
 	
@@ -205,7 +214,7 @@ class CPUArray{
 	pCPUQueue* pCq;
 	vector<Processor> vCPU;
 	vector<double> WorkTime;
-	int size=0;
+	int size=0, workingCpu = 0;
 public:
 	CPUArray(){ pCq = nullptr; }
 	CPUArray(int n, ifstream &ifs, pCPUQueue*_pcq){
@@ -218,8 +227,18 @@ public:
 		}
 		WorkTime.resize(size);
 	}
+
+//both expecterd to return if there is some cpu that is idle
+	bool isIdle(){ if((workingCpu<size)!=(isLongIdle())) cout << "TROUBLE@aCPU.isIdle()" << endl; //TESTLINE
+		return (workingCpu < size); }
+	bool isLongIdle(){
+		bool rslt = false;
+		for(int i=0; i<size; i++){ rslt = (rslt || !(vCPU[i].isActive())); }
+		return rslt;
+	}
 	
-	Tag activate(Tag &_tag){
+	Tag activate(Tag &_tag){ //accepts a tag, puts it to work at first available cpu, receives result
+		workingCpu++;
 		int i = 0;
 		_tag.currentLocation = 3;
 		for(; i<size; i++){ if(!(vCPU[i].isActive())) break; }
@@ -227,11 +246,14 @@ public:
 		vCPU[i].Start(_tag.time);
 		return vCPU[i].Work(_tag);
 	}
-	
-	void idle(Tag &Tn){
-		Tn.currentLocation++;
-		vCPU[Tn.index].Stop(Tn.time); }
-	
+
+//puts cpu that was working on Tn to idle... //CAREFUL
+	void idle(Tag const &Tn){
+		workingCpu--;
+		vCPU[Tn.index].Stop(Tn.time);
+	}
+
+//tag _done is done, cpu working on it recieves another //CAREFUL
 	Tag receive(Tag const &_done){
 		Tag _new = (pCq->top());
 		_new.index = _done.index;
@@ -261,7 +283,7 @@ class OutArray{
 	pOutQueue* pOq;
 	vector<Output> vOut;
 	vector<double> WorkTime;
-	int size=0;
+	int size=0, workingOut = 0;
 public:
 	OutArray(){ pOq = nullptr; }
 	OutArray(int n, ifstream &ifs, pOutQueue*_poq){
@@ -275,7 +297,17 @@ public:
 		WorkTime.resize(size);
 	}
 	
+//both expecterd to return if there is some output that is idle
+	bool isIdle(){ if((workingOut<size)!=(isLongIdle())) cout << "TROUBLE@aOut.isIdle()" << endl; //TESTLINE
+		return (workingOut < size); }
+	bool isLongIdle(){
+		bool rslt = false;
+		for(int i=0; i<size; i++){ rslt = (rslt || !(vOut[i].isActive())); }
+		return rslt;
+	}
+
 	Tag activate(Tag &_tag){
+		workingOut++;
 		int i = 0;
 		_tag.currentLocation = 5;
 		for(; i<size; i++){ if(!(vOut[i].isActive())) break; }
@@ -284,10 +316,12 @@ public:
 		return vOut[i].Work(_tag);
 	}
 	
-	void idle(Tag &Tn){
-		Tn.currentLocation++;
+//CAREFUL
+	void idle(Tag const &Tn){
+		workingOut--;
 		vOut[Tn.index].Stop(Tn.time); }
 	
+//CAREFUL
 	Tag receive(Tag const &_done){
 		Tag _new = pOq->top();
 		_new.index = _done.index;
@@ -300,6 +334,7 @@ public:
 		return vOut[again.index].Work(again);
 	}
 	
+	void getWorkTimes(){ for(int i=0; i<size; i++) WorkTime[i] = vOut[i].Stop(0); }
 	int longestWorker(){
 		double max = 0; int maxIndex = 0;
 		for(int i=0; i<size; i++){
@@ -322,7 +357,6 @@ class Setting{
 	pOutQueue pOq;
 	pqTComp GlobalCounter;
 	
-	int workingCPU = 0, workingOut = 0;
 public:
 	Setting(char* fileloc){
 		ifstream inputFile;
@@ -337,43 +371,94 @@ public:
 	}
 	
 	void Work(){
-		GlobalCounter = aTask.GenerateQueue();
+		GlobalCounter = aTask.GenerateQueue(); //indices are 0, vIndices are not
+		/*GlobalCounter counts all the tasks in aTask, aCPU, aOut
+		//so if it's empty, all tasks are complete
+		//which in turn means: DON'T PUT TASKS BACK IF THEY ARE COMPLETED!
+		//which in turn allows us to assume: all the tasks inside are INCOMPLETE*/
 		while(!(GlobalCounter.empty())){
-			Tag current;
-			do{
-				current = GlobalCounter.top();
-				cout << current;
-				GlobalCounter.pop();
-			} while(!(GlobalCounter.empty()) && current.currentLocation >= 6);
-			cout << "Going with this current;\n"; //TESTLINE
-			switch(current.currentLocation){
+			Tag current = GlobalCounter.top();
+			GlobalCounter.pop();
+			switch(current.currentLocation){ //where was topmost element located?
+			/*once again, GlobalCurrent counts tags in arrays and not queues,
+			//therefore we can assume all locations are 1, 3 or 5*/
 				case 1: 
-					cout << "in case 1;\n";
-					if(workingCPU<nCPU){
-					cout << "workingCPU/nCPU are: " << workingCPU << " " << nCPU << endl;
-					GlobalCounter.push( aCPU.activate(current) );
-					workingCPU++; }
-					else pCq.receive(current); break;
+					if(aCPU.isIdle()) GlobalCounter.push( aCPU.activate(current) );
+					/*there is an idle CPU
+					//CPUArray.activate() accepts a tag that WAS in task array,
+					//TRANSFORMS IT into a tag that IS in CPUArray and pushes back to GlobalCounter*/
+					else pCq.receive(current);
+					/*pCq.receive() accepts a tag that WAS in task array
+					//TRANSFORMS IT into a tag that IS in pCq
+					//doesn't return the tag*/
+					break;
 					
-				case 3: if(!(pCq.empty())) GlobalCounter.push( aCPU.receive(current) );
-					else { aCPU.idle(current); workingCPU--; }
+				case 3:
+					/*now, time has come for an element to leave aCPU
+					//which MEANS, it's also time to determine what is coming in*/
+					if(!(pCq.empty())) GlobalCounter.push( aCPU.receive(current) );
+					/*if there are elements in pCq, receive from there
+					//why do we ignore elements in aTask? because a task in
+					//motion cannot be in aTask, when they start moving, they'll either
+					//directly go to aCPU, or to pCq
+					//also, receive() DOES NOT change its variable*/
+					else aCPU.idle(current);
+					/*so now we see, aCPU.idle() accepts a tag: that tag is LEAVING the array
+					//and since there are no more elements left waiting, it's time for that
+					//CPU to go idle. note that, idle() DOES NOT change its variable*/
 					
-					if(workingOut<nOutput){
-					GlobalCounter.push( aOut.activate(current) );
-					workingOut++; }
-					else pOq.receive(current); break;
+					//onwards to deciding where that tag leaving aCPU goes: directly to aOut or pOq?
+					if(aOut.isIdle()) GlobalCounter.push( aOut.activate(current) );
+					/*so now demand is: aOut.activate() accepts tags and
+					//TRANSFORMS them into tags that are IN aOut
+					//OR, we need to make sure that variables passed into it are
+					//CERTAINLY in aOut*/
+					else pOq.receive(current);
+					/*similar to pCq.receive() above, it accepts and TRANSFORMS
+					//and doesn't return any tag*/
+					break;
 					
-				case 5: if(!(pOq.empty())) GlobalCounter.push( aOut.receive(current) );
-					else { aOut.idle(current); workingOut--; }
+				case 5:
+					/*let's cut it short: first 2 lines: deciding where the tag leaving aOut is going
+					//but FIRST we need to check if job is finished
+					//if it's finished, we'll set currentLocation to 6, won't push it back,
+					//receive new tag or simply go idle
+					//if it's not finished, then we'll check pOq, if it's empty we'll repeat
+					//if pOq is nonempty, then we'll put it to pOq and then get the next item
+					//note that, "if empty we repeat" part is equivalent to
+					//"put it to pOq and get the next item"
+					//(actually, don't do that: we may get MaxQueueLength=1 in cases it's actually =0) 
+					//therefore we can just say: "if not finished put to pOq, get the first item"
+					//note that pOq doesn't care of tag's time, so we need to adjust time accordingly*/
+					if((current.locator)->isComplete()){
+						aTask.TaskComplete(current);
+						if(pOq.empty()) aOut.idle(current);
+						else GlobalCounter.push( aOut.receive(current) );
+					}
+					else {
+						if(pOq.empty()) GlobalCounter.push( aOut.repeat(current) );
+						else {
+							pOq.receive(current);
+							GlobalCounter.push( aOut.receive(current) );
+						}
+					}
+					
+					
+					//OLD, INFINITELY-LOOPING VERSION
+					/*if(!(pOq.empty())) GlobalCounter.push( aOut.receive(current) );
+					
+					else { aOut.idle(current); }
 					
 					if((current.locator)->isComplete()){ aTask.TaskComplete(current); }
 					else if(!(pOq.empty())) pOq.receive(current);
-					else GlobalCounter.push( aOut.repeat(current) );
+					else GlobalCounter.push( aOut.repeat(current) );*/
 					break;
-				default: break;
+				default: cout << "TROUBLE! at switch(currentLocation)" << endl; break;
 			}
 			
 		}
+		aCPU.getWorkTimes();
+		aOut.getWorkTimes();
 	}
 	
 	void ExtractResults(char* fileloc){
