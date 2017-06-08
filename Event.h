@@ -14,29 +14,43 @@
 
 using namespace std;
 
-
-
 class Event {
-public:
-	double time;
+protected:
 	Task* task;
-	Simulation* sim;
-    string name;
 
+	double time;
+
+	Simulation* sim;
+
+	string name;
+
+public:
 	Event();
 	Event(Simulation *sim, Task *task, double time);
-	virtual ~Event();
+
+	virtual void process()=0;
+
+	void log();
+
 	double getTime() const;
+
 	void setTime(double time);
 
-    void log();
+	Task *getTask() const;
 
+	void setTask(Task *task);
 
-    virtual void process()=0;
+	Simulation *getSim() const;
 
-    friend ostream &operator<<(ostream &os, const Event &event);
+	void setSim(Simulation *sim);
 
-    bool operator<(const Event &rhs) const;
+	const string &getName() const;
+
+	void setName(const string &name);
+
+	virtual ~Event();
+
+	friend ostream &operator<<(ostream &os, const Event &event);
 };
 
 #endif /* EVENT_H_ */

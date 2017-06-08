@@ -31,17 +31,35 @@ Event::~Event() {
 }
 
 
+void Event::log() {
+    LOG(INFO) << this->name << " @:" << to_string(this->time) << " t:" << to_string(task->getId());
+}
+
+Task *Event::getTask() const {
+    return task;
+}
+
+void Event::setTask(Task *task) {
+    Event::task = task;
+}
+
+Simulation *Event::getSim() const {
+    return sim;
+}
+
+void Event::setSim(Simulation *sim) {
+    Event::sim = sim;
+}
+
+const string &Event::getName() const {
+    return name;
+}
+
+void Event::setName(const string &name) {
+    Event::name = name;
+}
+
 ostream &operator<<(ostream &os, const Event &event) {
     os << "time: " << event.time << " task: " << event.task << " sim: " << event.sim;
     return os;
-}
-
-bool Event::operator<(const Event &rhs) const {
-    cout << "xx" << endl;
-    return (time < rhs.time);
-
-}
-
-void Event::log() {
-    LOG(INFO) << this->name << " @:" << to_string(this->time) << " t:" << to_string(task->id);
 }

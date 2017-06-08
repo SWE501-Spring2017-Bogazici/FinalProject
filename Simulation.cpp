@@ -13,7 +13,14 @@
 using namespace std;
 
 Simulation::Simulation() {
-	taskCounter=0;
+    sjf_queue_max_size=0;
+    rr_queue_max_size=0;
+    max_active_cpu_id=0;
+    max_active_out_id=0;
+    average_wait_time=0.0;
+    longest_wait_time=0.0;
+    average_time_spent=0.0;
+    taskCounter=0;
 }
 
 Simulation::~Simulation() {
@@ -26,11 +33,11 @@ void Simulation::addCpu(Cpu* cpu) {
 
 void Simulation::addOutputDevice(OutputDevice* out) {
 	out->setSim(this);
-	outs.push_back(out);
+	outputDevices.push_back(out);
 }
 
 void Simulation::addTask(Task* task) {
-	task->id=taskCounter;
+	task->setId(taskCounter);
 	taskCounter++;
 	tasks.push_back(task);
 }
@@ -39,16 +46,30 @@ void Simulation::schedule(Event* event) {
 	futureEventsList.push(event);
 }
 
-Event* Simulation::popEvent() {
-	Event* top= futureEventsList.top();
-	futureEventsList.pop();
-	return top;
+Task* Simulation::popFromSJFQueue() {
+    if (!sjfQueue.empty()) {
+        Task* t= sjfQueue.top();
+        sjfQueue.pop();
+        return t;
+    } else {
+        return nullptr;
+    }
+}
+
+Task* Simulation::popFromRRQueue() {
+    if (!rrQueue.empty()) {
+        Task* t= rrQueue.top();
+        rrQueue.pop();
+        return t;
+    } else {
+        return nullptr;
+    }
 }
 
 void Simulation::run() {
 	for (auto task : tasks) {
-		TaskCpuArrivalEvent* event= new TaskCpuArrivalEvent(this, task, task->arrivalTime);
-        futureEventsList.push(event);
+		TaskCpuArrivalEvent* event= new TaskCpuArrivalEvent(this, task, task->getArrivalTime());
+        schedule(event);
 	}
 
 
@@ -70,19 +91,19 @@ void Simulation::run() {
 		}
     }
 
-	double max_cpu_active_time=0;
+	double max_cpu_active_time=0.0;
 	for (auto cpu : cpus) {
-		if (cpu->activeTime>max_cpu_active_time) {
-			max_cpu_active_time=cpu->activeTime;
-			max_active_cpu_id=cpu->id;
+		if (cpu->getActiveTime()>max_cpu_active_time) {
+			max_cpu_active_time=cpu->getActiveTime();
+			max_active_cpu_id=cpu->getId();
 		}
 	}
 
-	double max_out_active_time=0;
-	for (auto out : outs) {
-		if (out->activeTime>max_out_active_time) {
-			max_out_active_time=out->activeTime;
-			max_active_out_id=out->id;
+	double max_out_active_time=0.0;
+	for (auto out : outputDevices) {
+		if (out->getActiveTime()>max_out_active_time) {
+			max_out_active_time=out->getActiveTime();
+			max_active_out_id=out->getId();
 		}
 	}
 
@@ -92,9 +113,9 @@ void Simulation::run() {
 	double total_time_spent=0.0;
 	double total_wait=0.0;
 	for (auto t : tasks) {
-		time_spent= t->outtime - t->arrivalTime;
+		time_spent= t->getOutTime()- t->getArrivalTime();
 		total_time_spent= total_time_spent+ time_spent;
-		total_wait= t->waitCpu + t->waitOut;
+		total_wait= t->getWaitCpu()+ t->getWaitOut();
 		grand_total_wait = grand_total_wait+total_wait;
 		if (total_wait>longest_wait_time) {
 			longest_wait_time = total_wait;
@@ -107,7 +128,7 @@ void Simulation::run() {
 
 Cpu* Simulation::getFirstIdleCpu() {
 	for (auto cpu : cpus) {
-		if (cpu->idle) {
+		if (cpu->isIdle()) {
 			return cpu;
 		}
 	}
@@ -115,11 +136,18 @@ Cpu* Simulation::getFirstIdleCpu() {
 }
 
 OutputDevice* Simulation::getFirstIdleOut() {
-	for (auto out: outs) {
-		if (out->idle) {
+	for (auto out: outputDevices) {
+		if (out->isIdle()) {
 			return out;
 		}
 	}
 	return nullptr;
 }
 
+void Simulation::addToSJFQueue(Task* task) {
+    sjfQueue.push(task);
+}
+
+void Simulation::addToRRQueue(Task* task) {
+    rrQueue.push(task);
+}

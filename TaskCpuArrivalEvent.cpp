@@ -19,6 +19,6 @@ void TaskCpuArrivalEvent::process() {
         Event* event= new CpuInEvent(sim, task, time, cpu);
         sim->schedule(event);
     } else {
-        sim->sjfQueue.push(task);
+        sim->addToSJFQueue(task);
     }
 }

@@ -7,5 +7,5 @@
 
 bool RRComparator::operator()(const Task* lhs, const Task* rhs)
 {
-    return lhs->outtime > rhs->outtime;
+    return lhs->getOutTime()> rhs->getOutTime();
 }

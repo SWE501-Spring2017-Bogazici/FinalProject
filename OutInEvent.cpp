@@ -11,6 +11,5 @@ OutInEvent::OutInEvent(Simulation *pSimulation, Task *pTask, double time, Output
 
 void OutInEvent::process() {
     log();
-    //self.out.work(self.task, self.time)
-    this->out->work(task, time);
+    out->work(task, time);
 }

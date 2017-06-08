@@ -7,5 +7,5 @@
 #include "easylogging++.h"
 
 bool EventComparator::operator() (const Event* a, const Event* b) {
-    return a->time > b->time;
+    return a->getTime()> b->getTime();
 }

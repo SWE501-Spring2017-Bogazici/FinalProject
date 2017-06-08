@@ -7,5 +7,5 @@
 
 bool SJFComparator::operator()(const Task* lhs, const Task* rhs)
 {
-    return lhs->cpuWork > rhs->cpuWork;
+    return lhs->getCpuWork() > rhs->getCpuWork();
 }

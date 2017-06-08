@@ -15,7 +15,7 @@ OutputDevice::OutputDevice() {
 }
 
 OutputDevice::OutputDevice(int id, double quantum) : id(id), quantum(quantum) {
-
+    activeTime=0.0;
 }
 
 Simulation* OutputDevice::getSim() const {
@@ -32,27 +32,41 @@ OutputDevice::~OutputDevice() {
 
 void OutputDevice::work(Task *task, double time) {
 	this->idle=false;
-	if (task->remainingOutWork < quantum) {
-		task->outtime = time + task->remainingOutWork;
-		activeTime = activeTime + task->remainingOutWork;
-        OutFreeEvent* event= new OutFreeEvent(sim, task, task->outtime, this);
-        sim->schedule(event);
-        task->remainingOutWork=0;
-        task->finished=true;
-	} else if (task->remainingOutWork == quantum) {
-        task->outtime = time + quantum;
-        activeTime = activeTime + quantum;
-        OutFreeEvent* event= new OutFreeEvent(sim, task, task->outtime, this);
-        sim->schedule(event);
-        task->remainingOutWork=0;
-        task->finished=true;
-    } else {
-        task->remainingOutWork=task->remainingOutWork-quantum;
-        activeTime=activeTime+quantum;
-        task->outtime=time+quantum;
-        OutFreeEvent* event= new OutFreeEvent(sim, task, task->outtime, this);
-        sim->schedule(event);
-    }
+    double worked=task->outputWorked(time, quantum);
+    activeTime = activeTime + worked;
+    OutFreeEvent* event= new OutFreeEvent(sim, task, task->getOutTime(), this);
+    sim->schedule(event);
+}
 
+int OutputDevice::getId() const {
+    return id;
+}
+
+void OutputDevice::setId(int id) {
+    OutputDevice::id = id;
+}
+
+bool OutputDevice::isIdle() const {
+    return idle;
+}
+
+void OutputDevice::setIdle(bool idle) {
+    OutputDevice::idle = idle;
+}
+
+double OutputDevice::getQuantum() const {
+    return quantum;
+}
+
+void OutputDevice::setQuantum(double quantum) {
+    OutputDevice::quantum = quantum;
+}
+
+double OutputDevice::getActiveTime() const {
+    return activeTime;
+}
+
+void OutputDevice::setActiveTime(double activeTime) {
+    OutputDevice::activeTime = activeTime;
 }
 

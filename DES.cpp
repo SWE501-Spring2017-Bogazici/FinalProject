@@ -10,7 +10,6 @@
 #include <fstream>
 #include "Cpu.h"
 #include "Event.h"
-#include "Simulation.h"
 
 #include "easylogging++.h"
 
@@ -20,18 +19,19 @@ INITIALIZE_EASYLOGGINGPP
 using namespace std;
 
 
-void readInputFile(string inputFileName) {
-
-}
 
 int main(int argc, char *argv[]) {
 
+    // Setup logging
     el::Configurations defaultConf;
     defaultConf.setToDefault();
+
+    // make this true to enable logging
     defaultConf.set(el::Level::Global, el::ConfigurationType::Enabled, "false");
     el::Loggers::reconfigureLogger("default", defaultConf);
 
 
+    // load inputFile, initialize Simulation object, run the simulation, write the results to outputFile
     if ( argc != 3 ) {
         cout << "usage: " << argv[0] << " inputFile outputFile\n";
     } else {
@@ -86,8 +86,6 @@ int main(int argc, char *argv[]) {
 
         outputFile.close();
     }
-
-
 
 	return 0;
 }

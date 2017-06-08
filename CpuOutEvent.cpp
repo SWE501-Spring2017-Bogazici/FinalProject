@@ -16,14 +16,16 @@ CpuOutEvent::CpuOutEvent(Simulation *pSimulation, Task *pTask, double time, Cpu 
 
 void CpuOutEvent::process() {
     log();
-    cpu->idle=true;
-    if (!sim->sjfQueue.empty()) {
-        Task* newTask= sim->sjfQueue.top();
-        sim->sjfQueue.pop();
+    cpu->setIdle(true);
+
+    Task* newTask= sim->popFromSJFQueue();
+    if (newTask) {
         CpuInEvent* event = new CpuInEvent(sim, newTask, time, cpu);
         sim->schedule(event);
     }
-    task->outtime= time;
+
+    task->setOutTime(time);
+
     TaskOutArrivalEvent* event= new TaskOutArrivalEvent(sim, task, time);
     sim->schedule(event);
 }

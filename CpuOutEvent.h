@@ -9,9 +9,10 @@
 #include "Event.h"
 
 class CpuOutEvent : public Event{
+private:
+    Cpu* cpu;
 
 public:
-    Cpu* cpu;
     CpuOutEvent(Simulation *pSimulation, Task *pTask, double time, Cpu *pCpu);
 
     void process() override;

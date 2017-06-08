@@ -9,8 +9,9 @@
 #include "Event.h"
 
 class OutFreeEvent : public Event{
-public:
+private:
     OutputDevice* out;
+public:
     OutFreeEvent(Simulation *pSimulation, Task *pTask, double time, OutputDevice *pDevice);
     void process() override;
 };

@@ -8,22 +8,20 @@
 #include "easylogging++.h"
 
 OutFreeEvent::OutFreeEvent(Simulation *pSimulation, Task *pTask, double time, OutputDevice *pDevice) : Event(pSimulation, pTask, time) {
-    this->out=pDevice;
+    out=pDevice;
     name="OutFreeEvent";
 }
 
 void OutFreeEvent::process() {
     log();
-    out->idle=true;
-    if (!task->finished) {
-        sim->rrQueue.push(task);
+    out->setIdle(true);
+    if (!task->isFinished()) {
+        sim->addToRRQueue(task);
     }
 
-
-    if (!sim->rrQueue.empty()) {
-        Task* newTask= sim->rrQueue.top();
-        sim->rrQueue.pop();
-        newTask->waitOut=newTask->waitOut+(time-newTask->outtime);
+    Task* newTask= sim->popFromRRQueue();
+    if (newTask) {
+        newTask->setWaitOut(newTask->getWaitOut()+(time-newTask->getOutTime()));
         TaskOutArrivalEvent* event= new TaskOutArrivalEvent(sim, newTask, time);
         sim->schedule(event);
     }

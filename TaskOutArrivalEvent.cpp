@@ -17,6 +17,6 @@ void TaskOutArrivalEvent::process() {
         OutInEvent* event= new OutInEvent(sim, task, time, out);
         sim->schedule(event);
     } else {
-        sim->rrQueue.push(this->task);
+        sim->addToRRQueue(task);
     }
 }

@@ -9,11 +9,12 @@
 #include "Event.h"
 
 class OutInEvent : public Event{
+private:
+    OutputDevice* out;
 
 public:
-    OutputDevice* out;
-    void process() override;
     OutInEvent(Simulation *pSimulation, Task *pTask, double time, OutputDevice *pDevice);
+    void process() override;
 };
 
 

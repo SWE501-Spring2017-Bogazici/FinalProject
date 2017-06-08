@@ -12,11 +12,10 @@ CpuInEvent::CpuInEvent(Simulation *pSimulation, Task *pTask, double d, Cpu *pCpu
 
 void CpuInEvent::process() {
     log();
-    this->task->waitCpu = time - task->arrivalTime;
-    this->cpu->work(this->task, time);
+    task->setWaitCpu(time - task->getArrivalTime());
+    cpu->work(task, time);
 
-    CpuOutEvent* event= new CpuOutEvent(sim, task, task->cpuServiceStopTime, cpu);
-
-    this->sim->schedule(event);
+    CpuOutEvent* event= new CpuOutEvent(sim, task, task->getCpuServiceStopTime(), cpu);
+    sim->schedule(event);
 }
 

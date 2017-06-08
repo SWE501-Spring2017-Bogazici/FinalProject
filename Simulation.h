@@ -26,35 +26,49 @@ using namespace std;
 
 
 class Simulation {
-public:
-
-    int sjf_queue_max_size=0;
-    int rr_queue_max_size=0;
-    int max_active_cpu_id=0;
-    int max_active_out_id=0;
-    double average_wait_time=0.0;
-    double longest_wait_time=0.0;
-    double average_time_spent=0.0;
-
-    vector<Cpu*> cpus;
-    vector<OutputDevice*> outs;
-
+private:
+	vector<Cpu*> cpus;
+    vector<OutputDevice*> outputDevices;
     priority_queue<Event*, vector<Event*>, EventComparator > futureEventsList;
     priority_queue<Task*, vector<Task*> , SJFComparator> sjfQueue;
     priority_queue<Task*, vector<Task*>, RRComparator> rrQueue;
-    vector<Task*> tasks;
+
     int taskCounter;
+    vector<Task*> tasks;
+
+public:
+    int sjf_queue_max_size;
+    int rr_queue_max_size;
+    int max_active_cpu_id;
+    int max_active_out_id;
+    double average_wait_time;
+    double longest_wait_time;
+    double average_time_spent;
+
 	Simulation();
-	void addCpu(Cpu* cpu);
-	void addOutputDevice(OutputDevice* out);
-	void addTask(Task* task);
 
-	void schedule(Event* event);
-	Event* popEvent();
+    void addTask(Task* task);
 
-	Cpu* getFirstIdleCpu();
+    void addCpu(Cpu* cpu);
+
+    void addOutputDevice(OutputDevice* out);
+
+    Cpu* getFirstIdleCpu();
+
     OutputDevice* getFirstIdleOut();
-	void run();
+
+    void schedule(Event* event);
+
+    void run();
+
+    void addToRRQueue(Task* task);
+
+    Task* popFromRRQueue();
+
+    void addToSJFQueue(Task* task);
+
+    Task* popFromSJFQueue();
+
 	virtual ~Simulation();
 };
 

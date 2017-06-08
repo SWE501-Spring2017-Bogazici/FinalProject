@@ -9,9 +9,12 @@
 #include "Event.h"
 
 class CpuInEvent : public Event{
-public:
+private:
     Cpu* cpu;
+
+public:
     CpuInEvent(Simulation *pSimulation, Task *pTask, double d, Cpu *pCpu);
+
     void process() override;
 
 
