@@ -11,6 +11,8 @@ The chain starts with TaskCpuArrivalEvent and finishes with OutFreeEvent when th
 
 The asked statistics are collected in the Simulation object. 
 
+The file ClassDiagram.png shows an overview of the design.
+
 There are two implementations, in python (the file project.py) and c++. I first implemented it in python since I am more comfortable with it, then ported to C++.
 
 
